@@ -1,39 +1,39 @@
 {
   "wheelbase_basic_settings": {
-    "limit_angle": 1080,
-    "game_ffb_strength": 85,
-    "road_sensitivity": 10,
-    "natural_damper": 75,
-    "natural_friction": 40,
-    "limit_wheel_speed": 50,
+    "limit_angle": 360,
+    "game_ffb_strength": 100,
+    "road_sensitivity": 2,
+    "natural_damper": 10,
+    "natural_friction": 5,
+    "limit_wheel_speed": 100,
     "peak_torque_limit": 100
   },
   "road_vibrations_equalizer": {
-    "EqualizerAmp7_5": 100,
-    "EqualizerAmp13": 95,
-    "EqualizerAmp22_5": 80,
-    "EqualizerAmp39": 40,
-    "EqualizerAmp55": 20,
-    "EqualizerAmp100": 10
+    "EqualizerAmp7_5": 0,
+    "EqualizerAmp13": 5,
+    "EqualizerAmp22_5": 10,
+    "EqualizerAmp39": 20,
+    "EqualizerAmp55": 30,
+    "EqualizerAmp100": 40
   },
   "directinput_effects": {
     "periodic_sine_vibration": {
       "active": true,
-      "magnitude": 5000,
-      "period_ms": 80,
+      "magnitude": 8000,
+      "period_ms": 50,
       "phase": 0,
       "offset": 0
     },
     "constant_shock_force": {
       "active": true,
-      "magnitude": 8500
+      "magnitude": 5000
     },
     "spring_return_force": {
-      "active": true,
+      "active": false,
       "offset": 0,
-      "dead_band": 500,
-      "positive_coefficient": 2000,
-      "negative_coefficient": 2000
+      "dead_band": 0,
+      "positive_coefficient": 0,
+      "negative_coefficient": 0
     }
   }
 }
