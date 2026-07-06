@@ -1,0 +1,39 @@
+{
+  "wheelbase_basic_settings": {
+    "limit_angle": 1080,
+    "game_ffb_strength": 85,
+    "road_sensitivity": 10,
+    "natural_damper": 75,
+    "natural_friction": 40,
+    "limit_wheel_speed": 50,
+    "peak_torque_limit": 100
+  },
+  "road_vibrations_equalizer": {
+    "EqualizerAmp7_5": 100,
+    "EqualizerAmp13": 95,
+    "EqualizerAmp22_5": 80,
+    "EqualizerAmp39": 40,
+    "EqualizerAmp55": 20,
+    "EqualizerAmp100": 10
+  },
+  "directinput_effects": {
+    "periodic_sine_vibration": {
+      "active": true,
+      "magnitude": 5000,
+      "period_ms": 80,
+      "phase": 0,
+      "offset": 0
+    },
+    "constant_shock_force": {
+      "active": true,
+      "magnitude": 8500
+    },
+    "spring_return_force": {
+      "active": true,
+      "offset": 0,
+      "dead_band": 500,
+      "positive_coefficient": 2000,
+      "negative_coefficient": 2000
+    }
+  }
+}
