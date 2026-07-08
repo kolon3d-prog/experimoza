@@ -5,3 +5,4 @@ __pycache__/
 .vscode/
 build/
 MOZA_SDK/
+.git-backups/
