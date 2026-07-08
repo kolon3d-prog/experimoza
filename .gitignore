@@ -6,3 +6,6 @@ __pycache__/
 build/
 MOZA_SDK/
 .git-backups/
+py_directinput_ffb/.wheel_stop_request
+py_directinput_ffb/wheel_state.json
+py_directinput_ffb/wheel_state.tmp

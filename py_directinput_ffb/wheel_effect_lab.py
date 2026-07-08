@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import math
 import textwrap
 import time
@@ -44,7 +45,10 @@ LOOP_HZ = 60
 MAX_FORCE = 10000
 FORCE_SIGN = 1
 SCENE_BODY_PATH = Path(__file__).with_name("generated_scene_body.py")
+STOP_REQUEST_PATH = Path(__file__).with_name(".wheel_stop_request")
+WHEEL_STATE_PATH = Path(__file__).with_name("wheel_state.json")
 SCENE_RELOAD_INTERVAL = 0.25
+STATE_WRITE_INTERVAL = 1 / 30
 
 
 def clamp(value: float, low: float, high: float) -> float:
@@ -411,7 +415,33 @@ def read_wheel_state(device, axis_min: int, axis_max: int, start_time: float, la
     )
 
 
+def clear_stop_request() -> None:
+    try:
+        STOP_REQUEST_PATH.unlink()
+    except FileNotFoundError:
+        pass
+
+
+def write_wheel_state(state: WheelState | None, effects: Effects | None, *, running: bool) -> None:
+    payload = {
+        "running": running,
+        "x": 0.0 if state is None else state.x,
+        "x_velocity": 0.0 if state is None else state.x_velocity,
+        "raw_x": 0 if state is None else state.raw_x,
+        "constant": 0 if effects is None else effects.last_constant,
+        "sine": 0 if effects is None else effects.last_sine,
+        "spring": 0 if effects is None else effects.last_spring,
+        "damper": 0 if effects is None else effects.last_damper,
+    }
+    temp_path = WHEEL_STATE_PATH.with_suffix(".tmp")
+    temp_path.write_text(json.dumps(payload), encoding="utf-8")
+    temp_path.replace(WHEEL_STATE_PATH)
+
+
 def main() -> None:
+    clear_stop_request()
+    write_wheel_state(None, None, running=False)
+
     direct_input = create_direct_input()
     devices = enum_devices(direct_input, only_attached=True, only_force_feedback=True)
     if not devices:
@@ -447,11 +477,20 @@ def main() -> None:
         start_time = time.perf_counter()
         last_state = None
         last_print = 0.0
+        last_state_write = 0.0
 
         while True:
+            if STOP_REQUEST_PATH.exists():
+                print("\nStop requested by GUI.")
+                break
+
             state = read_wheel_state(device, axis_min, axis_max, start_time, last_state)
             update_effects(state, effects)
             last_state = state
+
+            if state.t - last_state_write > STATE_WRITE_INTERVAL:
+                last_state_write = state.t
+                write_wheel_state(state, effects, running=True)
 
             if state.t - last_print > 0.25:
                 last_print = state.t
@@ -475,6 +514,8 @@ def main() -> None:
             effects.stop_all()
         if acquired:
             unacquire(device)
+        write_wheel_state(None, None, running=False)
+        clear_stop_request()
         _ = hwnd
         _ = data_format
         print("Done.")
