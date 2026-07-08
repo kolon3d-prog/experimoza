@@ -1,6 +1,7 @@
 from google import genai
 import base64
 import os
+import re
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,72 +13,75 @@ with open(path, "rb") as f:
     image_bytes = f.read()
 image_b64 = base64.b64encode(image_bytes).decode("utf_8")
 
+prompt = '''Act as a poet, but for force feedback.
+Based on the picture, write Python code for a 10-second cyclic force-feedback "poem".
+The code should make the steering wheel feel like the image in a creative, physical way.
+Do not make a boring tuning preset. Make an active kinetic scene: the wheel may pull,
+kick, oscillate, resist, loosen, and change direction over time.
+
+Write only Python code that will be inserted as the body of:
+
+def update_effects(state, fx):
+    ...
+
+Available variables:
+- state.t: seconds since start
+- state.dt: frame delta seconds
+- state.x: wheel position, -1..+1
+- state.x_velocity: wheel speed
+- math is available
+- clamp(value, low, high) is available
+- clamp_force(value, limit) is available
+
+Available effect calls:
+- fx.constant(force)
+  Signed force. Negative pulls one way, positive pulls the other.
+- fx.sine(magnitude, period_us=45000)
+  Vibration/texture. magnitude is 0..10000. period_us must be greater than 0.
+- fx.spring(coefficient, saturation=6000, dead_band=250)
+  Hardware centering spring. coefficient is 0..10000.
+- fx.damper(coefficient, saturation=6000, dead_band=0)
+  Hardware resistance/damping. coefficient is 0..10000.
+
+Format rules:
+- Output code only.
+- Do not use Markdown fences.
+- Do not include imports.
+- Do not define functions, classes, lambdas, files, network calls, subprocesses, or infinite loops.
+- Make the scene cyclic with: cycle_time = 10.0 and t = state.t % cycle_time.
+- Use if/elif/else time sections.
+- Always set all four effects in every branch: constant, sine, spring, damper.
+- Use keyword arguments after the first argument:
+  good: fx.constant(force)
+  bad:  fx.constant(value=force)
+  good: fx.sine(400, period_us=45000)
+  bad:  fx.sine(400, 45000)
+- To disable sine, write fx.sine(0), not fx.sine(0, 0).
+- Never use period_us below 5000.
+
+Safety/style rules:
+- Be expressive. Use the full -10000..10000 range when the image calls for drama.
+- Use fx.constant(...) as directional torque choreography:
+  * positive and negative values should intentionally pull the wheel in different directions
+  * use waves like math.sin(...) * 5000 for sweeping left-right motion
+  * use short opposite-sign pulses for impacts, snaps, cracks, collisions, explosions, curbs, or rhythm
+- Normal motion can be 2500..6500.
+- Very intense pulls can be 6500..9000.
+- 9000..10000 is allowed for brief hits or violent moments, but do not hold it for a whole multi-second branch.
+- Avoid long static maximum force. If force is high, make it pulse, decay, alternate sign, or depend on state.x/state.x_velocity.
+- Do not over-center every branch. Some branches should be off-center, directional, or unstable when visually appropriate.
+- Use state.x and state.x_velocity to make the wheel fight back against the user, not just vibrate.
+- Good directional examples:
+  fx.constant(math.sin(t * 5.0) * 4500)
+  fx.constant(-state.x * 2500 + math.sin(t * 12.0) * 3500)
+  fx.constant(7500 if t < 0.15 else -5500)
+- The result should feel alive and surprising, but not like a permanent full-force lock.
+'''
+
 interaction = client.interactions.create(
     model="gemini-3.1-flash-lite",
     input=[
-        {"type": "text", "text": '''You are an elite Simracing and Force Feedback (FFB) tuning engineer, specializing in Moza Direct Drive wheelbases.
-Your task is to analyze the provided image (which could be a screenshot from a racing simulator, a photo of a car, a racetrack, a type of terrain, or road surface) and generate the optimal force feedback and vibration configuration in JSON format.
-
----
-### ANALYSIS PIPELINE
-
-1. Identify the Vehicle Class:
-   - Open-wheel / Formula: Needs low rotation angle (360-540), high responsiveness, low damper, high torque limit.
-   - GT3 / Sportscar: Needs moderate rotation (540-900), balanced damping and friction.
-   - Drift / Rally: Needs fast wheel return speed (limit_wheel_speed: 80-100), natural spring/inertia settings, and high rotation (900-1080).
-   - Off-road / Trucks: Needs high rotation (900-1080), high damping (natural_damper) to avoid thumb injuries, and low wheel speed.
-
-2. Identify the Surface / Terrain:
-   - Smooth Asphalt (racetrack): Low equalizer settings for lower frequencies, moderate road_sensitivity (3-5).
-   - Bumpy Asphalt / Street Track: High EqualizerAmp13 and EqualizerAmp22_5.
-   - Gravel / Dirt / Sand: Maximum road_sensitivity (8-10), extremely high low-frequency equalizer values (EqualizerAmp7_5: 80-100, EqualizerAmp13: 70-90) to simulate heavy rocks and bumps.
-   - Wet / Ice: Low overall ffb_strength, very low friction and damping to make the steering feel light and slippery.
-
----
-### PARAMETER DICTIONARY & CONSTRAINTS
-
-Your JSON response must match this schema exactly:
-
-* wheelbase_basic_settings:
-  - "limit_angle": integer [90 to 2000]. Steering rotation limit in degrees.
-  - "game_ffb_strength": integer [0 to 100]. Overall force feedback gain.
-  - "road_sensitivity": integer [0 to 10]. Road detail amplification.
-  - "natural_damper": integer [0 to 100]. Steering wheel rotation resistance (viscosity).
-  - "natural_friction": integer [0 to 100]. Static resistance when turning.
-  - "limit_wheel_speed": integer [10 to 100]. Speed of self-centering rotation.
-  - "peak_torque_limit": integer [50 to 100]. Max motor torque limit in %.
-
-* road_vibrations_equalizer:
-  - "EqualizerAmp7_5": integer [0 to 100]. Curbs, rumble strips, and heavy bumps.
-  - "EqualizerAmp13": integer [0 to 100]. Road texture, gravel, small bumps.
-  - "EqualizerAmp22_5": integer [0 to 100]. Medium bumps.
-  - "EqualizerAmp39": integer [0 to 100]. Speed feeling, engine hum.
-  - "EqualizerAmp55": integer [0 to 100]. Fine high-frequency vibrations.
-  - "EqualizerAmp100": integer [0 to 100]. Micro-details of the road.
-
-* directinput_effects:
-  - "periodic_sine_vibration": Simulates constant engine vibrations (especially at idle).
-    * "active": boolean.
-    * "magnitude": integer [-10000 to 10000]. Strength of vibration.
-    * "period_ms": integer [10 to 100]. Wave cycle time (frequency).
-    * "phase": integer [0 to 36000]. Wave phase.
-    * "offset": integer [-10000 to 10000].
-  - "constant_shock_force": Simulates heavy impacts like hitting potholes or crash obstacles.
-    * "active": boolean.
-    * "magnitude": integer [-10000 to 10000]. Force of the shock impact.
-  - "spring_return_force": Hardware-independent centering spring.
-    * "active": boolean.
-    * "offset": integer [-10000 to 10000]. Center offset.
-    * "dead_band": integer [0 to 10000]. Zone around center with zero force.
-    * "positive_coefficient": integer [0 to 10000]. Spring stiffness turning right.
-    * "negative_coefficient": integer [0 to 10000]. Spring stiffness turning left.
-
----
-### OUTPUT RULES
-- Return ONLY valid JSON matching the format.
-- Do NOT include any markdown blocks (like ```json ... ```) or explanatory text outside the JSON.
-- Ensure all values are realistic based on the visual context of the image.
-'''},
+        {"type": "text", "text": prompt},
         {
             "type": "image",
             "data": image_b64,
@@ -85,7 +89,16 @@ Your JSON response must match this schema exactly:
         }
     ]
 )
-print(interaction.output_text)
+output_text = interaction.output_text.strip()
+output_text = re.sub(r"^```(?:python)?\s*", "", output_text)
+output_text = re.sub(r"\s*```$", "", output_text)
 
 with open("output.txt", "w") as f:
-    f.write(interaction.output_text)
+    f.write(output_text)
+
+scene_path = os.path.join("py_directinput_ffb", "generated_scene_body.py")
+with open(scene_path, "w") as f:
+    f.write(output_text)
+
+print(output_text)
+print(f"\nWrote scene to {scene_path}")
