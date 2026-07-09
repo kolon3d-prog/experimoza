@@ -14,7 +14,6 @@ ROOT_DIR = Path(__file__).resolve().parent
 WHEEL_LAB_PATH = ROOT_DIR / "py_directinput_ffb" / "wheel_effect_lab.py"
 STOP_REQUEST_PATH = ROOT_DIR / "py_directinput_ffb" / ".wheel_stop_request"
 WHEEL_STATE_PATH = ROOT_DIR / "py_directinput_ffb" / "wheel_state.json"
-SHIP_WHEEL_IMAGE_PATH = ROOT_DIR / "pngtree-ship-wheel-steer-a-boat-png-image_11569400.png"
 WHEEL_VISUAL_MAX_DEGREES = 540
 wheel_process = None
 ship_wheel_base_image = None
@@ -176,7 +175,6 @@ def update_oscilloscope():
     current = read_wheel_effects()
     ffbcanvas.delete("all")
 
-    # grid
     ffbcanvas.create_line(0, y_center, width, y_center, fill="#3A3A3A", dash=(4, 4))
     ffbcanvas.create_line(0, y_center - height/4, width, y_center - height/4, fill="#2F2F2F", dash=(2, 2))
     ffbcanvas.create_line(0, y_center + height/4, width, y_center + height/4, fill="#2F2F2F", dash=(2, 2))
@@ -231,7 +229,7 @@ def update_ship_wheel_rotation():
         )
         current_ship_wheel_image = ctk.CTkImage(
             dark_image=rotated_image,
-            size=(118, 118),
+            size=(240, 240),
         )
         labelShipWheel.configure(image=current_ship_wheel_image)
         labelShipWheel.image = current_ship_wheel_image
@@ -265,8 +263,8 @@ class CTkDnD(ctk.CTk, TkinterDnD.DnDWrapper):
 app = CTkDnD()
 app.geometry("1100x700")
 app.title("experimoza")
-app.grid_columnconfigure(0, weight=1)  # main grows
-app.grid_columnconfigure(1, weight=0)  # right panel fixed
+app.grid_columnconfigure(0, weight=1)  
+app.grid_columnconfigure(1, weight=0)  
 app.grid_rowconfigure(0, weight=1)
 
 main = ctk.CTkFrame(app)
@@ -361,20 +359,16 @@ right_bottom.grid(row=1, column=0, sticky="nsew", padx=12, pady=12)
 right_bottom.grid_rowconfigure(0, weight=1)
 right_bottom.grid_columnconfigure(0, weight=1)
 
-captain_stack = ctk.CTkFrame(right_bottom, fg_color="transparent")
-captain_stack.grid(row=0, column=0)
+carumba=ctk.CTkLabel(right_bottom, text="ay carumba!!", font=("Comic Sans MS", 20, "bold"), text_color="#FF0000")
+carumba.pack(expand=True)
 
-pirate = ctk.CTkImage(dark_image=Image.open("Adobe Express - file.webp"), size=(128,128))
-labelPirate = ctk.CTkLabel(master=captain_stack, text="", image=pirate)
-labelPirate.grid(row=0, column=0, pady=(0, 6))
-
-ship_wheel_base_image = Image.open(SHIP_WHEEL_IMAGE_PATH).convert("RGBA")
+ship_wheel_base_image = Image.open("Adobe Express - file.png").convert("RGBA")
 ship_wheel = ctk.CTkImage(
     dark_image=ship_wheel_base_image,
-    size=(118, 118),
+    size=(240, 240),
 )
-labelShipWheel = ctk.CTkLabel(master=captain_stack, text="", image=ship_wheel)
-labelShipWheel.grid(row=1, column=0)
+labelShipWheel = ctk.CTkLabel(master=right_bottom, text="", image=ship_wheel)
+labelShipWheel.pack(expand=True)
 
 update_oscilloscope()
 update_ship_wheel_rotation()
