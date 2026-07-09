@@ -175,9 +175,9 @@ def update_oscilloscope():
     current = read_wheel_effects()
     ffbcanvas.delete("all")
 
-    ffbcanvas.create_line(0, y_center, width, y_center, fill="#3A3A3A", dash=(4, 4))
-    ffbcanvas.create_line(0, y_center - height/4, width, y_center - height/4, fill="#2F2F2F", dash=(2, 2))
-    ffbcanvas.create_line(0, y_center + height/4, width, y_center + height/4, fill="#2F2F2F", dash=(2, 2))
+    ffbcanvas.create_line(0, y_center, width, y_center, fill="#412D15", dash=(4, 4))
+    ffbcanvas.create_line(0, y_center - height/4, width, y_center - height/4, fill="#1F150C", dash=(2, 2))
+    ffbcanvas.create_line(0, y_center + height/4, width, y_center + height/4, fill="#1F150C", dash=(2, 2))
 
     max_val = 10000.0
     scale = (height / 2.1) / max_val
@@ -207,7 +207,7 @@ def update_oscilloscope():
         15, 15,
         anchor="nw",
         text=legend_text,
-        fill="#B8C1CC",
+        fill="#E1DCC9",
         font=("Manrope", 11, "bold")
     )
 
@@ -263,11 +263,12 @@ class CTkDnD(ctk.CTk, TkinterDnD.DnDWrapper):
 app = CTkDnD()
 app.geometry("1100x700")
 app.title("experimoza")
+app.configure(fg_color="#000000")
 app.grid_columnconfigure(0, weight=1)  
 app.grid_columnconfigure(1, weight=0)  
 app.grid_rowconfigure(0, weight=1)
 
-main = ctk.CTkFrame(app)
+main = ctk.CTkFrame(app, fg_color="#1F150C")
 main.grid(row=0, column=0, sticky="nsew", padx=(12, 0), pady=12)
 
 main.grid_rowconfigure(0, weight=0)
@@ -275,14 +276,14 @@ main.grid_rowconfigure(1, weight=1)
 main.grid_rowconfigure(2, weight=0)
 main.grid_columnconfigure(0, weight=1)
 
-mainTop = ctk.CTkFrame(main)
+mainTop = ctk.CTkFrame(main, fg_color="transparent")
 mainTop.grid(row=0, column=0, sticky="nsew")
 
-fileLabel = ctk.CTkLabel(mainTop, text="1. Source image", font=(BUTTON_FONT, 20))
+fileLabel = ctk.CTkLabel(mainTop, text="1. Source image", font=(BUTTON_FONT, 20), text_color="#E1DCC9")
 fileLabel.pack(anchor="w", padx=12, pady=(12,0))
 
 
-mainTopCard = ctk.CTkFrame(mainTop)
+mainTopCard = ctk.CTkFrame(mainTop, fg_color="#412D15")
 mainTopCard.pack(padx=12, pady=12, fill="both")
 mainTopCard.drop_target_register(DND_FILES)
 mainTopCard.dnd_bind("<<Drop>>", on_file_drop)
@@ -295,10 +296,10 @@ addImage = ctk.CTkImage(
 dropIcon=ctk.CTkLabel(mainTopCard, text="", image=addImage)
 dropIcon.pack()
 
-dropText=ctk.CTkLabel(mainTopCard, text="Drop image here", font=(BUTTON_FONT, 18))
+dropText=ctk.CTkLabel(mainTopCard, text="Drop image here", font=(BUTTON_FONT, 18), text_color="#E1DCC9")
 dropText.pack()
 
-dropText=ctk.CTkLabel(mainTopCard, text="or", font=(BUTTON_FONT, 16), text_color="#B8C1CC")
+dropText=ctk.CTkLabel(mainTopCard, text="or", font=(BUTTON_FONT, 16), text_color="#E1DCC9")
 dropText.pack()
 
 choose_button = ctk.CTkButton(
@@ -306,19 +307,22 @@ choose_button = ctk.CTkButton(
     text="Choose image",
     font=BUTTON_FONT,
     command=choose_image,
+    fg_color="#1F150C",
+    hover_color="#000000",
+    text_color="#E1DCC9",
 )
 choose_button.pack(padx=12, pady=12)
 
-descrText=ctk.CTkLabel(mainTopCard, text="Experimoza turns it into a 10s force feedback scene", font=(BUTTON_FONT, 16), text_color="#B8C1CC")
+descrText=ctk.CTkLabel(mainTopCard, text="Experimoza turns it into a 10s force feedback scene", font=(BUTTON_FONT, 16), text_color="#E1DCC9")
 descrText.pack(pady=(0, 12))
 
-mainCenter = ctk.CTkFrame(main)
+mainCenter = ctk.CTkFrame(main, fg_color="#412D15")
 mainCenter.grid(row=1, column=0, sticky="nsew", padx=12, pady=12)
 
-ffbcanvas = tk.Canvas(master=mainCenter, bg="#2b2b2b", highlightthickness=0)
+ffbcanvas = tk.Canvas(master=mainCenter, bg="#1F150C", highlightthickness=0)
 ffbcanvas.pack(fill="both", expand=True, padx=6, pady=6)
 
-mainBottom = ctk.CTkFrame(main)
+mainBottom = ctk.CTkFrame(main, fg_color="transparent")
 mainBottom.grid(row=2, column=0, sticky="nsew")
 mainBottom.grid_rowconfigure(0, weight=1)
 mainBottom.grid_columnconfigure(0, weight=1)
@@ -329,6 +333,9 @@ start_button = ctk.CTkButton(
     text="FEEL THE IMAGE",
     font=BUTTON_FONT,
     command=start_wheel,
+    fg_color="#412D15",
+    hover_color="#5a3e1d",
+    text_color="#E1DCC9",
 )
 start_button.grid(row=0, column=0, sticky="nsew", padx=12, pady=12)
 stop_button = ctk.CTkButton(
@@ -336,11 +343,14 @@ stop_button = ctk.CTkButton(
     text="PANIC STOP :0",
     font=BUTTON_FONT,
     command=stop_wheel,
+    fg_color="#412D15",
+    hover_color="#5a3e1d",
+    text_color="#E1DCC9",
 )
 stop_button.grid(row=0, column=1, sticky="nsew", padx=12, pady=12)
 stop_button.configure(state="disabled")
 
-right_panel = ctk.CTkFrame(app, width=300)
+right_panel = ctk.CTkFrame(app, width=300, fg_color="#1F150C")
 right_panel.grid(row=0, column=1, sticky="ns", padx=12, pady=12)
 right_panel.grid_propagate(False)
 
@@ -348,12 +358,12 @@ right_panel.grid_rowconfigure(0, weight=1)
 right_panel.grid_rowconfigure(1, weight=1)
 right_panel.grid_columnconfigure(0, weight=1)
 
-right_top = ctk.CTkFrame(right_panel)
+right_top = ctk.CTkFrame(right_panel, fg_color="#412D15")
 right_top.grid(row=0, column=0, sticky="nsew", padx=12, pady=12)
-image_label = ctk.CTkLabel(right_top, text="No image selected", font=(BUTTON_FONT, 16), text_color="#B8C1CC")
+image_label = ctk.CTkLabel(right_top, text="No image selected", font=(BUTTON_FONT, 16), text_color="#E1DCC9")
 image_label.pack(expand=True)
 
-right_bottom = ctk.CTkFrame(right_panel)
+right_bottom = ctk.CTkFrame(right_panel, fg_color="#412D15")
 right_bottom.grid(row=1, column=0, sticky="nsew", padx=12, pady=12)
 
 right_bottom.grid_rowconfigure(0, weight=1)
