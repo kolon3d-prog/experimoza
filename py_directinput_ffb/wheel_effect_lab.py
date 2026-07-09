@@ -435,7 +435,10 @@ def write_wheel_state(state: WheelState | None, effects: Effects | None, *, runn
     }
     temp_path = WHEEL_STATE_PATH.with_suffix(".tmp")
     temp_path.write_text(json.dumps(payload), encoding="utf-8")
-    temp_path.replace(WHEEL_STATE_PATH)
+    try:
+        temp_path.replace(WHEEL_STATE_PATH)
+    except PermissionError:
+        pass
 
 
 def main() -> None:

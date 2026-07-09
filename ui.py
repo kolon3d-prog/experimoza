@@ -5,8 +5,10 @@ import sys
 from pathlib import Path
 from PIL import Image
 from tkinter import filedialog
+import tkinter as tk
 from ai import get_ffb
 from tkinterdnd2 import DND_FILES, TkinterDnD
+import matplotlib.pyplot as plt
 
 ROOT_DIR = Path(__file__).resolve().parent
 WHEEL_LAB_PATH = ROOT_DIR / "py_directinput_ffb" / "wheel_effect_lab.py"
@@ -18,7 +20,7 @@ wheel_process = None
 ship_wheel_base_image = None
 current_ship_wheel_image = None
 last_visual_degrees = None
-BUTTON_FONT = (Manrope, 16, "bold")
+BUTTON_FONT = ("Manrope", 16, "bold")
 
 
 def choose_image():
@@ -148,6 +150,72 @@ def read_wheel_effects():
         return {"constant": 0, "sine": 0, "spring": 0, "damper": 0}
 
 
+HISTORY_LENGTH = 120
+effects_history = {
+    "constant": [0.0] * HISTORY_LENGTH,
+    "sine": [0.0] * HISTORY_LENGTH,
+    "spring": [0.0] * HISTORY_LENGTH,
+    "damper": [0.0] * HISTORY_LENGTH,
+}
+
+EFFECT_COLORS = {
+    "constant": "#FF5B5B",
+    "sine": "#5BFF5B",
+    "spring": "#5B9BFF",
+    "damper": "#FFD15B",
+}
+
+def update_oscilloscope():
+    if not ffbcanvas.winfo_exists():
+        return
+
+    width = max(ffbcanvas.winfo_width(), 100)
+    height = max(ffbcanvas.winfo_height(), 100)
+    y_center = height / 2
+
+    current = read_wheel_effects()
+    ffbcanvas.delete("all")
+
+    # grid
+    ffbcanvas.create_line(0, y_center, width, y_center, fill="#3A3A3A", dash=(4, 4))
+    ffbcanvas.create_line(0, y_center - height/4, width, y_center - height/4, fill="#2F2F2F", dash=(2, 2))
+    ffbcanvas.create_line(0, y_center + height/4, width, y_center + height/4, fill="#2F2F2F", dash=(2, 2))
+
+    max_val = 10000.0
+    scale = (height / 2.1) / max_val
+
+    for name, color in EFFECT_COLORS.items():
+        val = current.get(name, 0.0)
+        
+        effects_history[name].pop(0)
+        effects_history[name].append(val)
+
+        points = []
+        for i in range(HISTORY_LENGTH):
+            x = i * (width / (HISTORY_LENGTH - 1))
+            y = y_center - (effects_history[name][i] * scale)
+            points.append(x)
+            points.append(y)
+
+        ffbcanvas.create_line(points, fill=color, width=2, smooth=True)
+
+    legend_text = (
+        f"Constant: {int(current['constant']):+6d}  |  "
+        f"Sine: {int(current['sine']):5d}  |  "
+        f"Spring: {int(current['spring']):5d}  |  "
+        f"Damper: {int(current['damper']):5d}"
+    )
+    ffbcanvas.create_text(
+        15, 15,
+        anchor="nw",
+        text=legend_text,
+        fill="#B8C1CC",
+        font=("Manrope", 11, "bold")
+    )
+
+    app.after(30, update_oscilloscope)
+
+
 def update_ship_wheel_rotation():
     global current_ship_wheel_image, last_visual_degrees
 
@@ -246,6 +314,12 @@ choose_button.pack(padx=12, pady=12)
 descrText=ctk.CTkLabel(mainTopCard, text="Experimoza turns it into a 10s force feedback scene", font=(BUTTON_FONT, 16), text_color="#B8C1CC")
 descrText.pack(pady=(0, 12))
 
+mainCenter = ctk.CTkFrame(main)
+mainCenter.grid(row=1, column=0, sticky="nsew", padx=12, pady=12)
+
+ffbcanvas = tk.Canvas(master=mainCenter, bg="#2b2b2b", highlightthickness=0)
+ffbcanvas.pack(fill="both", expand=True, padx=6, pady=6)
+
 mainBottom = ctk.CTkFrame(main)
 mainBottom.grid(row=2, column=0, sticky="nsew")
 mainBottom.grid_rowconfigure(0, weight=1)
@@ -302,6 +376,7 @@ ship_wheel = ctk.CTkImage(
 labelShipWheel = ctk.CTkLabel(master=captain_stack, text="", image=ship_wheel)
 labelShipWheel.grid(row=1, column=0)
 
+update_oscilloscope()
 update_ship_wheel_rotation()
 app.protocol("WM_DELETE_WINDOW", on_close)
 app.mainloop()
