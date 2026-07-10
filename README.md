@@ -49,6 +49,10 @@ pip install google-genai python-dotenv customtkinter pillow tkinterdnd2 matplotl
 
 **[py_directinput_ffb](https://github.com/sunwj/py_directinput_ffb/tree/main)** by [sunwj](https://github.com/sunwj) - DirectInput force feedback binding used for wheel control. Modified for Experimoza.
 
+## AI Credits
+
+i used codex for researching the structure of py_directinput_ffb, writing the prompt for gemini api, debugging, it helped me build oscilloscope.
+
 ## License
 
 MIT License - See [LICENSE](LICENSE) for details.
