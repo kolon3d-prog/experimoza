@@ -2,6 +2,7 @@ import customtkinter as ctk
 import json
 import subprocess
 import sys
+import ctypes
 from pathlib import Path
 from PIL import Image
 from tkinter import filedialog
@@ -10,13 +11,16 @@ from ai import get_ffb
 from tkinterdnd2 import DND_FILES, TkinterDnD
 import matplotlib.pyplot as plt
 
-ROOT_DIR = Path(__file__).resolve().parent
-WHEEL_LAB_PATH = ROOT_DIR / "py_directinput_ffb" / "wheel_effect_lab.py"
-STOP_REQUEST_PATH = ROOT_DIR / "py_directinput_ffb" / ".wheel_stop_request"
-WHEEL_STATE_PATH = ROOT_DIR / "py_directinput_ffb" / "wheel_state.json"
+try:
+    if sys.platform == "win32":
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("experimoza.wheelapp.v1")
+except Exception:
+    pass
+
 WHEEL_VISUAL_MAX_DEGREES = 540
 wheel_process = None
-ship_wheel_base_image = None
+ASSETS_DIR = Path(__file__).resolve().parent / "assets"
+ship_wheel_base_image = Image.open(ASSETS_DIR / "Adobe Express - file.png").convert("RGBA")
 current_ship_wheel_image = None
 last_visual_degrees = None
 BUTTON_FONT = ("Manrope", 16, "bold")
@@ -78,8 +82,8 @@ def start_wheel():
 
     clear_stop_request()
     wheel_process = subprocess.Popen(
-        [sys.executable, str(WHEEL_LAB_PATH)],
-        cwd=str(ROOT_DIR),
+        [sys.executable, str(Path("py_directinput_ffb") / "wheel_effect_lab.py")],
+        cwd=".",
     )
     start_button.configure(state="disabled")
     stop_button.configure(state="normal")
@@ -119,26 +123,26 @@ def kill_wheel_if_needed():
 
 
 def request_wheel_stop():
-    STOP_REQUEST_PATH.write_text("stop\n", encoding="utf-8")
+    (Path("py_directinput_ffb") / ".wheel_stop_request").write_text("stop\n", encoding="utf-8")
 
 
 def clear_stop_request():
     try:
-        STOP_REQUEST_PATH.unlink()
+        (Path("py_directinput_ffb") / ".wheel_stop_request").unlink()
     except FileNotFoundError:
         pass
 
 
 def read_wheel_x():
     try:
-        data = json.loads(WHEEL_STATE_PATH.read_text(encoding="utf-8"))
+        data = json.loads((Path("py_directinput_ffb") / "wheel_state.json").read_text(encoding="utf-8"))
         return max(-1.0, min(1.0, float(data.get("x", 0.0))))
     except (FileNotFoundError, json.JSONDecodeError, OSError, ValueError):
         return 0.0
 
 def read_wheel_effects():
     try:
-        data = json.loads(WHEEL_STATE_PATH.read_text(encoding="utf-8"))
+        data = json.loads((Path("py_directinput_ffb") / "wheel_state.json").read_text(encoding="utf-8"))
         return {
             "constant": data.get("constant", 0),
             "sine": data.get("sine", 0),
@@ -213,6 +217,17 @@ def update_oscilloscope():
 
     app.after(30, update_oscilloscope)
 
+def check_constant_speed():
+    global ship_wheel_base_image
+    current = read_wheel_effects()
+    constant = int(current['constant'])
+    sine = int(current['sine'])
+    if constant > 4000 or constant < -4000 or sine > 2000 or sine < -2000:
+        ship_wheel_base_image = Image.open(ASSETS_DIR / "furiouscaptain.png").convert("RGBA")
+    else:
+        ship_wheel_base_image = Image.open(ASSETS_DIR / "Adobe Express - file.png").convert("RGBA")
+    app.after(30, check_constant_speed)
+
 
 def update_ship_wheel_rotation():
     global current_ship_wheel_image, last_visual_degrees
@@ -268,6 +283,8 @@ app.grid_columnconfigure(0, weight=1)
 app.grid_columnconfigure(1, weight=0)  
 app.grid_rowconfigure(0, weight=1)
 
+app.iconbitmap(str(ASSETS_DIR / "hookicon.ico"))
+
 main = ctk.CTkFrame(app, fg_color="#1F150C")
 main.grid(row=0, column=0, sticky="nsew", padx=(12, 0), pady=12)
 
@@ -289,7 +306,7 @@ mainTopCard.drop_target_register(DND_FILES)
 mainTopCard.dnd_bind("<<Drop>>", on_file_drop)
 
 addImage = ctk.CTkImage( 
-    dark_image=Image.open("187803-200.png"),
+    dark_image=Image.open(ASSETS_DIR / "187803-200.png"),
     size=(64, 64)
 )
 
@@ -372,7 +389,6 @@ right_bottom.grid_columnconfigure(0, weight=1)
 carumba=ctk.CTkLabel(right_bottom, text="ay carumba!!", font=("Comic Sans MS", 20, "bold"), text_color="#FF0000")
 carumba.pack(expand=True)
 
-ship_wheel_base_image = Image.open("Adobe Express - file.png").convert("RGBA")
 ship_wheel = ctk.CTkImage(
     dark_image=ship_wheel_base_image,
     size=(240, 240),
@@ -380,6 +396,7 @@ ship_wheel = ctk.CTkImage(
 labelShipWheel = ctk.CTkLabel(master=right_bottom, text="", image=ship_wheel)
 labelShipWheel.pack(expand=True)
 
+check_constant_speed()
 update_oscilloscope()
 update_ship_wheel_rotation()
 app.protocol("WM_DELETE_WINDOW", on_close)
