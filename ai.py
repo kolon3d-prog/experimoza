@@ -16,70 +16,78 @@ SCENE_BODY_PATH = ROOT_DIR / "py_directinput_ffb" / "generated_scene_body.py"
 
 PROMPT = textwrap.dedent(
     '''\
-    Act as a poet, but for force feedback.
-    Based on the picture, write Python code for a 10-second cyclic force-feedback "poem".
-    The code should make the steering wheel feel like the image in a creative, physical way.
-    Do not make a boring tuning preset. Make an active scene: the wheel may pull,
-    kick, oscillate, resist, loosen, and change direction over time.
+    turn this picture into a 10-second force feedback scene for a steering wheel.
 
-    Write only Python code that will be inserted as the body of:
+    the main goal is to move the wheel, not leave it standing in one place and vibrating.
+    use fx.constant(...) as the main effect for almost the entire scene. the wheel should
+    spend most of the 10 seconds being pulled somewhere, sweeping between directions,
+    leaning to one side, recoiling, drifting, or reacting to the person holding it.
+
+    constant force is the animation. use changing positive and negative values to create
+    actual directional movement. vary the shape of that movement: it can ramp, swing,
+    pulse, hesitate, overshoot, snap back, change direction, or carry an uneven offset.
+    don't use the same simple centered sine wave for every scene. choose the movement from
+    the image and make the timing feel specific to it.
+
+    fx.sine(...) is only extra texture. vibration is not a substitute for movement. keep
+    it lower than the constant force most of the time, switch it off when it adds nothing,
+    and never make a long section where the wheel only vibrates while constant force is
+    zero. spring and damper can add shape, weight, or resistance, but keep them low enough
+    that the wheel can still move. don't let them pin the wheel to the center.
+
+    use state.x and state.x_velocity only to make the directional pull react to the person.
+    don't turn every branch into a strong centering formula like -state.x * force. the
+    scene should pull the wheel through space instead of always returning it to zero.
+
+    build one continuous movement across the full 10 seconds. use as many time sections as
+    the image needs, with uneven lengths. don't default to four equal parts or boundaries
+    at 0, 2.5, 5, and 7.5 seconds. keep force flowing through section boundaries unless a
+    sudden break is intentional. make the end connect naturally back to the beginning.
+
+    the first line of the answer must be one short python comment explaining which visible
+    detail or feeling in the picture led to this movement. after that, return only python
+    code with no other comments or explanation. the code will be used as the body of:
 
     def update_effects(state, fx):
         ...
 
-    Available variables:
+    you can use:
     - state.t: seconds since start
     - state.dt: frame delta seconds
     - state.x: wheel position, -1..+1
     - state.x_velocity: wheel speed
-    - math is available
-    - clamp(value, low, high) is available
-    - clamp_force(value, limit) is available
+    - math
+    - clamp(value, low, high)
+    - clamp_force(value, limit)
 
-    Available effect calls:
+    these are the only effect calls you may use:
     - fx.constant(force)
-      Signed force. Negative pulls one way, positive pulls the other.
-    - fx.sine(magnitude, period_us=45000)
-      Vibration/texture. magnitude is 0..10000. period_us must be greater than 0.
+      signed directional force, keep it within -8000..8000
+    - fx.sine(magnitude, period_us=55000)
+      vibration or texture, magnitude is 0..10000, period_us must be at least 5000
     - fx.spring(coefficient, saturation=6000, dead_band=250)
-      Hardware centering spring. coefficient is 0..10000.
+      centering spring, coefficient is 0..10000
     - fx.damper(coefficient, saturation=6000, dead_band=0)
-      Hardware resistance/damping. coefficient is 0..10000.
+      resistance, coefficient is 0..10000
 
-    Format rules:
-    - Output code only.
-    - Do not use Markdown fences.
-    - Do not include comments.
-    - Do not include imports.
-    - Do not define functions, classes, lambdas, files, network calls, subprocesses, or infinite loops.
-    - Make the scene cyclic with: cycle_time = 10.0 and t = state.t % cycle_time.
-    - Use if/elif/else time sections.
-    - Always set all four effects in every branch: constant, sine, spring, damper.
-    - Use keyword arguments after the first argument:
-      good: fx.constant(force)
-      bad:  fx.constant(value=force)
-      good: fx.sine(400, period_us=45000)
-      bad:  fx.sine(400, 45000)
-    - To disable sine, write fx.sine(0), not fx.sine(0, 0).
-    - Never use period_us below 5000.
+    start with these lines:
 
-    Safety/style rules:
-    - Be expressive. Use the full -10000..10000 range when the image calls for drama.
-    - Use fx.constant(...) as directional torque choreography:
-      * positive and negative values should intentionally pull the wheel in different directions
-      * use waves like math.sin(...) * 5000 for sweeping left-right motion
-      * use short opposite-sign pulses for impacts, snaps, cracks, collisions, explosions, curbs, or rhythm
-    - Normal motion can be 2500..6500.
-    - Very intense pulls can be 6500..9000.
-    - 9000..10000 is allowed for brief hits or violent moments, but do not hold it for a whole multi-second branch.
-    - Avoid long static maximum force. If force is high, make it pulse, decay, alternate sign, or depend on state.x/state.x_velocity.
-    - Do not over-center every branch. Some branches should be off-center, directional, or unstable when visually appropriate.
-    - Use state.x and state.x_velocity to make the wheel fight back against the user, not just vibrate.
-    - Good directional examples:
-      fx.constant(math.sin(t * 5.0) * 4500)
-      fx.constant(-state.x * 2500 + math.sin(t * 12.0) * 3500)
-      fx.constant(7500 if t < 0.15 else -5500)
-    - The result should feel alive and surprising, but not like a permanent full-force lock.
+    cycle_time = 10.0
+    t = state.t % cycle_time
+
+    use if/elif/else time sections. call constant, sine, spring, and damper in every branch
+    so old values never remain active by accident. constant should be meaningfully nonzero
+    through most of the cycle. a branch with fx.constant(0) should be brief and intentional,
+    not a place to fill time with vibration.
+
+    most constant force should be around 2500..5500. strong pulls can reach 5500..6000.
+    values up to 8000 are allowed only for short hits. don't hold high force for a long
+    branch. make it move, fade, alternate, or release.
+
+    no markdown, extra comments, imports, functions, classes, lambdas, file access,
+    network calls, subprocesses, or loops. keep the first argument positional and use
+    keyword arguments after it. use fx.sine(400, period_us=55000), not fx.sine(400, 55000).
+    use fx.sine(0) to turn vibration off.
     '''
 )
 
@@ -88,10 +96,7 @@ def clean_model_output(output_text: str) -> str:
     output_text = output_text.strip()
     output_text = re.sub(r"^```(?:python)?\s*", "", output_text)
     output_text = re.sub(r"\s*```$", "", output_text)
-    return "\n".join(
-        line for line in output_text.splitlines()
-        if not line.lstrip().startswith("#")
-    ).strip()
+    return output_text.strip()
 
 
 def get_ffb(path: str | os.PathLike[str]) -> str:
